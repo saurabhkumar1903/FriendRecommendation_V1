@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
-class Reduce extends Reducer<LongWritable, FriendCountWritable, LongWritable, Text> {
+class Reduce extends Reducer<LongWritable, FriendCountWritable, Text, Text> {
 	 private Text word = new Text();
 	    private HashMap<Long,String> stopWords = new HashMap<>();
 	    
@@ -84,16 +84,24 @@ class Reduce extends Reducer<LongWritable, FriendCountWritable, LongWritable, Te
             }
             ++i;
         }
-        context.write(key, new Text(output));
+        context.write(new Text(find2(key)), new Text(output));
     }
     
 
-    private String find(List<Long> value) {
+    private String find2(LongWritable key) {
+    	Long a=Long.parseLong(key+"");
+		// TODO Auto-generated method stub
+		return stopWords.get(a);
+	}
+
+
+	private String find(List<Long> value) {
     	String temp=" [";
     	for(long l:value)
     	{
-    		temp+=","+stopWords.get(l);
+    		temp+=stopWords.get(l)+",";
     	}
+    	temp=temp.substring(0,temp.length()-1);
 		// TODO Auto-generated method stub
 		return temp+"] ";
 	}
