@@ -1,18 +1,28 @@
 package demopackage;
 
 
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 class Reduce extends Reducer<LongWritable, FriendCountWritable, LongWritable, Text> {
-    @Override
+	 private Text word = new Text();
+	    private HashMap<Long,String> stopWords = new HashMap<>();
+	    
+	@Override
     public void reduce(LongWritable key, Iterable<FriendCountWritable> values, Context context)
             throws IOException, InterruptedException {
 
@@ -68,12 +78,52 @@ class Reduce extends Reducer<LongWritable, FriendCountWritable, LongWritable, Te
         String output = "";
         for (java.util.Map.Entry<Long, List<Long>> entry : sortedMutualFriends.entrySet()) {
             if (i == 0) {
-                output = entry.getKey().toString() + " (" + entry.getValue().size() + ": " + entry.getValue() + ")";
+                output = stopWords.get(entry.getKey()) + " (" + entry.getValue().size() + ": " + find(entry.getValue()) + ")";
             } else {
-                output += "," + entry.getKey().toString() + " (" + entry.getValue().size() + ": " + entry.getValue() + ")";
+                output += "," + stopWords.get(entry.getKey()) + " (" + entry.getValue().size() + ": " + find(entry.getValue()) + ")";
             }
             ++i;
         }
         context.write(key, new Text(output));
     }
+    
+
+    private String find(List<Long> value) {
+    	String temp=" [";
+    	for(long l:value)
+    	{
+    		temp+=","+stopWords.get(l);
+    	}
+		// TODO Auto-generated method stub
+		return temp+"] ";
+	}
+
+
+	@Override
+       protected void setup(Context context) throws IOException, InterruptedException {
+       	try{
+       		Path[] stopWordsFiles = DistributedCache.getLocalCacheFiles(context.getConfiguration());
+       		if(stopWordsFiles != null && stopWordsFiles.length > 0) {
+       			for(Path stopWordFile : stopWordsFiles) {
+       				readFile(stopWordFile);
+       			}
+       		}
+       	} catch(IOException ex) {
+       		System.err.println("Exception in mapper setup: " + ex.getMessage());
+       	}
+       }
+    
+    private void readFile(Path filePath) {
+		try{
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath.toString()));
+			String stopWord = null;
+			while((stopWord = bufferedReader.readLine()) != null) {
+				String temp[]=stopWord.split("\t");
+				stopWords.put(Long.parseLong(temp[0]),temp[1]);
+			}
+		} catch(IOException ex) {
+			System.err.println("Exception while reading stop words file: " + ex.getMessage());
+		}
+	}
+
 }
