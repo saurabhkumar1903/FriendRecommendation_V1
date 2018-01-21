@@ -14,7 +14,7 @@ class Map extends Mapper<LongWritable, Text, LongWritable, FriendCountWritable> 
 
     @Override
     public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-        String line[] = value.toString().split("\t");
+        String line[] = value.toString().split(" ");
         Long fromUser = Long.parseLong(line[0]);
         List<Long> toUsers = new ArrayList<Long>();
 
